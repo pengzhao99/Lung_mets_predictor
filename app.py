@@ -9,6 +9,11 @@ import pandas as pd
 try:
     with open('lung_model.pkl', 'rb') as f:
         model = pickle.load(f)
+
+    if hasattr(model, 'model'):
+        model.model.device = 'cpu'
+        model.model.n_estimators = 1
+
 except Exception as e:
     raise RuntimeError(f"Failed to load model: {e}")
 
@@ -30,6 +35,15 @@ class PatientInput(BaseModel):
     CREA: float
     T_count: float     # "T-count" → T_count
     L_count: float     # "L-count" → L_count
+
+
+@app.on_event("startup")
+async def startup_event():
+    print("Warming up model...")
+    dummy = pd.DataFrame([[1, 10.0, 200.0, 5.0, 5.5, 100, 80.0, 1500.0, 1.0]],
+                         columns=[f for f in PatientInput.__annotations__])
+    _ = model.predict_proba(dummy)
+    print("Warmup complete!")
 
 
 # Prediction endpoint
