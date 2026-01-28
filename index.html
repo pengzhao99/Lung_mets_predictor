@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lung Cancer Metastasis Risk Prediction</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", Arial;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 { color: #2c3e50; }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e8;
+            border: 1px solid #a5d6a7;
+            border-radius: 5px;
+            display: none;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lung Cancer Metastasis Predictor</h1>
+    <p>Please enter the patient's clinical laboratory test indicators.</p>
+
+    <form id="prediction-form">
+        <div class="input-group">
+            <label for="Histologic_type">Histologic type (0=Other, 1=SCC, 2=ADC, 3=SCLC):</label>
+            <input type="number" id="Histologic_type" min="0" max="3" required>
+        </div>
+        <div class="input-group">
+            <label for="NSE">NSE (e.g., 0 ～ 22):</label>
+            <input type="number" id="NSE" step="0.1" required>
+        </div>
+        <div class="input-group">
+            <label for="LDH">LDH (e.g., 0 ～ 500):</label>
+            <input type="number" id="LDH" step="1" required>
+        </div>
+        <div class="input-group">
+            <label for="CEA">CEA (e.g., 0 ～ 60):</label>
+            <input type="number" id="CEA" step="0.1" required>
+        </div>
+        <div class="input-group">
+            <label for="Nsclc_21_1">Nsclc-21-1 (e.g., 0 ～ 30):</label>
+            <input type="number" id="Nsclc_21_1" step="0.1" required>
+        </div>
+        <div class="input-group">
+            <label for="NK_count">NK-count (e.g., 0 ～ 650):</label>
+            <input type="number" id="NK_count" step="0.1" required>
+        </div>
+        <div class="input-group">
+            <label for="CREA">CREA (e.g., 0 ～ 150):</label>
+            <input type="number" id="CREA" step="0.1" required>
+        </div>
+        <div class="input-group">
+            <label for="T_count">T-count (e.g., 0 ～ 2000):</label>
+            <input type="number" id="T_count" step="0.1" required>
+        </div>
+        <div class="input-group">
+            <label for="L_count">L-count (e.g., 0 ～ 3.0):</label>
+            <input type="number" id="L_count" step="0.1" required>
+        </div>
+        <button type="button" onclick="submitForm()">Predict Risk</button>
+    </form>
+
+    <p style="font-size: 0.9em; color: #666; margin-top: 20px; text-align: center;">
+        For research use only. Clinical decisions should be made with caution and in consultation with qualified healthcare professionals.
+    </p>
+
+    <div id="result" class="result"></div>
+    <div id="error" class="error"></div>
+
+    <div id="result" class="result"></div>
+    <div id="error" class="error"></div>
+
+    <script>
+        async function submitForm() {
+            const formData = {
+                Histologic_type: parseInt(document.getElementById('Histologic_type').value),
+                NSE: parseFloat(document.getElementById('NSE').value),
+                LDH: parseFloat(document.getElementById('LDH').value),
+                CEA: parseFloat(document.getElementById('CEA').value),
+                Nsclc_21_1: parseFloat(document.getElementById('Nsclc_21_1').value),
+                NK_count: parseFloat(document.getElementById('NK_count').value),
+                CREA: parseFloat(document.getElementById('CREA').value),
+                T_count: parseFloat(document.getElementById('T_count').value),
+                L_count: parseFloat(document.getElementById('L_count').value)
+            };
+
+            // Validate inputs
+            for (let key in formData) {
+                if (isNaN(formData[key])) {
+                    document.getElementById('error').textContent = "Please enter valid numbers.";
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) throw new Error("Server error");
+
+                const result = await response.json();
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <strong>Metastasis Probability:</strong> ${(result.metastasis_probability * 100).toFixed(2)}%<br>
+                    <strong>Risk Level:</strong> ${result.risk_level}
+                `;
+                resultDiv.style.display = 'block';
+                document.getElementById('error').textContent = '';
+            } catch (err) {
+                document.getElementById('error').textContent = "Prediction failed: " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
